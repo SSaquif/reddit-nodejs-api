@@ -21,7 +21,9 @@ class RedditAPI {
                 return this.conn.query('INSERT INTO users (username,password, createdAt, updatedAt) VALUES (?, ?, NOW(), NOW())', [user.username, hashedPassword]);
             })
             .then(result => {
+                //console.log(result); //test to see what results returns
                 return result.insertId;
+                //NTS: see documentation on github for result and insertid
             })
             .catch(error => {
                 // Special error handling for duplicate entry
@@ -35,7 +37,7 @@ class RedditAPI {
     }
 
     createPost(post) {
-        return this.conn.query(
+        return this.conn.query( //NTS: note the this keyword
             `INSERT INTO posts (userId, title, url, createdAt, updatedAt)
             VALUES (?, ?, ?, NOW(), NOW())`,
             [post.userId, post.title, post.url]
@@ -56,11 +58,28 @@ class RedditAPI {
         lines without having to manually split the string line by line.
          */
         return this.conn.query(
-            `
-            SELECT id, title, url, userId, createdAt, updatedAt
-            FROM posts
-            ORDER BY createdAt DESC
+        `   SELECT posts.id, posts.title, posts.url, posts.userId, posts.createdAt, posts.updatedAt, 
+                    users.id AS userId, users.userName, users.createdAt AS userJoinDate, users.updatedAt AS userUpdateDate    
+            FROM posts JOIN users
+                ON users.id = posts.userId
+            ORDER BY posts.createdAt DESC
             LIMIT 25`
+        )
+        .then(results => results.map(function(row)
+        {
+            var rowData = {};
+            rowData.id = row.id;
+            rowData.title = row.title;
+            rowData.url = row.url;
+            rowData.createdAt = row.createdAt;
+            rowData.updatedAt = row.updatedAt;
+            rowData.userData = {};
+            rowData.userData.id = row.userId;
+            rowData.userData.userName = row.userName;
+            rowData.userData.createdAt = row.userJoinDate;
+            rowData.userData.updatedAt = row.userUpdateDate;
+            return rowData;
+        })
         );
     }
 }
