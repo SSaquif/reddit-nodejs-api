@@ -1,3 +1,6 @@
+"use strict";
+
+
 var bcrypt = require('bcrypt-as-promised');
 var HASH_ROUNDS = 10;
 
@@ -33,9 +36,8 @@ class RedditAPI {
 
     createPost(post) {
         return this.conn.query(
-            `
-            INSERT INTO posts (userId, title, url, createdAt, updatedAt)
-            VALUES (?, ?, ?, NOW(). NOW())`,
+            `INSERT INTO posts (userId, title, url, createdAt, updatedAt)
+            VALUES (?, ?, ?, NOW(), NOW())`,
             [post.userId, post.title, post.url]
         )
             .then(result => {

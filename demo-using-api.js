@@ -1,12 +1,14 @@
 // load the mysql library
+"use strict";
+
 var mysql = require('promise-mysql');
 
 // create a connection to our Cloud9 server
 var connection = mysql.createPool({
     host     : 'localhost',
-    user     : 'ziad_saab', // CHANGE THIS :)
+    user     : 'ssaquif', // CHANGE THIS :)
     password : '',
-    database: 'reddit',
+    database : 'reddit',        //
     connectionLimit: 10
 });
 
