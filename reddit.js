@@ -8,6 +8,27 @@ class RedditAPI {
     constructor(conn) {
         this.conn = conn;
     }
+    
+    createSubreddit(subreddit)
+    {
+        return this.conn.query (`INSERT INTO subreddits (name, description, createdAt, updatedAt) 
+                                     VALUES (?,?, NOW(), NOW())`, [subreddit.name, subreddit.description])
+        
+        .then(result => {
+            console.log(result);
+            console.log(result.insertId);
+            return result.insertId;
+        })
+        .catch(error => {
+           if (error.code == 'ER_DUP_ENTRY'){
+               throw new Error ('A subreddit with the same name already exists');
+           }
+           else{
+               throw error;
+           }
+            
+        });
+    }
 
     createUser(user) {
         /*
@@ -38,15 +59,27 @@ class RedditAPI {
 
     createPost(post) {
         return this.conn.query( //NTS: note the this keyword
-            `INSERT INTO posts (userId, title, url, createdAt, updatedAt)
-            VALUES (?, ?, ?, NOW(), NOW())`,
-            [post.userId, post.title, post.url]
+            `INSERT INTO posts (userId, subredditId, title, url, createdAt, updatedAt)
+            VALUES (?, ?, ?, ?, NOW(), NOW())`,
+            [post.userId, post.subredditId, post.title, post.url]
         )
             .then(result => {
                 return result.insertId;
+            })
+            .catch(error => {
+                if (error.code === 'ER_BAD_NULL_ERROR')
+                {
+                    throw new Error('A required field is missing');
+                }
+                throw error;
             });
     }
-
+    
+    getAllSubreddits() {
+        return this.conn.query(
+            `SELECT id, name, description, createdAt, updatedAt FROM subreddits ORDER BY createdAt DESC`
+            );
+    }
     getAllPosts() {
         /*
         strings delimited with ` are an ES2015 feature called "template strings".
@@ -57,16 +90,20 @@ class RedditAPI {
         therefore template strings make it very easy to write SQL queries that span multiple
         lines without having to manually split the string line by line.
          */
+        // this returns a flat array of "table row" objects
         return this.conn.query(
         `   SELECT posts.id, posts.title, posts.url, posts.userId, posts.createdAt, posts.updatedAt, 
-                    users.id AS userId, users.userName, users.createdAt AS userJoinDate, users.updatedAt AS userUpdateDate    
-            FROM posts JOIN users
-                ON users.id = posts.userId
+                    users.id AS userId, users.userName, users.createdAt AS userJoinDate, users.updatedAt AS userUpdateDate,
+                    subreddits.id AS subId, subreddits.name, subreddits.description, subreddits.createdAt AS subCreationDate, subreddits.updatedAt AS subUpdateDate
+            FROM users 
+                JOIN posts ON users.id = posts.userId
+                JOIN subreddits ON subreddits.id = posts.subredditId
             ORDER BY posts.createdAt DESC
             LIMIT 25`
         )
-        .then(results => results.map(function(row)
-        {
+        //map function to take each falt row from results array and unflatten it
+        .then(result => result.map(function(row)  
+        {   //NTS: Verbose code for self help for later, can make it without declaring rowdata
             var rowData = {};
             rowData.id = row.id;
             rowData.title = row.title;
@@ -78,7 +115,27 @@ class RedditAPI {
             rowData.userData.userName = row.userName;
             rowData.userData.createdAt = row.userJoinDate;
             rowData.userData.updatedAt = row.userUpdateDate;
+            rowData.subredditData = {};
+            rowData.subredditData.id = row.subId;
+            rowData.subredditData.name = row.name;
+            rowData.subredditData.description = row.description;
+            rowData.subredditData.subCreationDate = row.subCreationDate;
+            rowData.subredditData.subUpdateDate = row.subUpdateDate;
             return rowData;
+            
+            // can also do something like this, but getting error here
+            /*return {
+                id = row.id,
+                title = row.title,
+                url = row.url,
+                createdAt = row.createdAt,
+                updatedAt = row.updatedAt,
+                userData = {
+                    id = row.userId,
+                    userName = row.userName,
+                    createdAt = row.userJoinDate,
+                    updatedAt = row.userUpdateDate
+                };*/
         })
         );
     }
