@@ -35,3 +35,14 @@ CREATE TABLE posts (
   CONSTRAINT validUser FOREIGN KEY (userId) REFERENCES users (id) ON DELETE SET NULL,
   FOREIGN KEY (subredditId) REFERENCES subreddits (id)
 );
+
+CREATE TABLE votes (
+  userId INT,
+  postId INT,
+  voteDirection TINYINT,
+  createdAt DATETIME NOT NULL,
+  updatedAt DATETIME NOT NULL,
+  PRIMARY KEY (userId, postId),
+  FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
+  FOREIGN KEY (postId) REFERENCES posts (id) ON DELETE CASCADE
+);

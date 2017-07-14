@@ -67,19 +67,53 @@ class RedditAPI {
                 return result.insertId;
             })
             .catch(error => {
-                if (error.code === 'ER_BAD_NULL_ERROR')
-                {
+                if (error.code === 'ER_BAD_NULL_ERROR') {
                     throw new Error('A required field is missing');
                 }
                 throw error;
             });
     }
     
+    createVote(vote) {
+        console.log("I am here");
+        return Promise.resolve()
+        .then(resolved => {
+            var query;
+            console.log("I am here");
+            console.log(vote.voteDirection);
+            if (vote.voteDirection !== 1 && vote.voteDirection !== 0 && vote.voteDirection !== -1 ) {
+                console.log("inside voteDirection check");
+                throw "Vote Direction is Invalid";
+            }
+            else {
+                console.log("creating the query");
+                query = `INSERT INTO votes (userId, postId, voteDirection, createdAt, updatedAt)
+                            VALUES (?,?,?, NOW(), NOW())
+                            ON DUPLICATE KEY UPDATE voteDirection = ?, updatedAt = NOW()`;
+            }
+            console.log("before commiting query");
+            return this.conn.query(query,[vote.userId, vote.postId, vote.voteDirection, vote.voteDirection]);
+        })
+        .then(result => {
+            console.log("vote was inserted" + result.insertId);
+            return result.insertId; //NTS: will return the vote id since it is a PRIMARY KEY INT AUTO INCREMENT FIELD
+                                    //insertId returns 0 for all other successful insert, 
+                                    //if table does not have a PRIMARY KEY INT AUTO INCREMENT FIELD        
+        })
+        .catch(error => {
+            console.log("caught an error inside createVote catch");
+            throw error; 
+        });
+    }
+    
+    //get all subreddits ordered by descending order of their creation date (i.e: latest first)
     getAllSubreddits() {
         return this.conn.query(
             `SELECT id, name, description, createdAt, updatedAt FROM subreddits ORDER BY createdAt DESC`
             );
     }
+    
+    
     getAllPosts() {
         /*
         strings delimited with ` are an ES2015 feature called "template strings".
@@ -94,12 +128,15 @@ class RedditAPI {
         return this.conn.query(
         `   SELECT posts.id, posts.title, posts.url, posts.userId, posts.createdAt, posts.updatedAt, 
                     users.id AS userId, users.userName, users.createdAt AS userJoinDate, users.updatedAt AS userUpdateDate,
-                    subreddits.id AS subId, subreddits.name, subreddits.description, subreddits.createdAt AS subCreationDate, subreddits.updatedAt AS subUpdateDate
+                    subreddits.id AS subId, subreddits.name, subreddits.description, subreddits.createdAt AS subCreationDate, subreddits.updatedAt AS subUpdateDate,
+                    SUM(votes.voteDirection) AS voteScore
             FROM users 
                 JOIN posts ON users.id = posts.userId
                 JOIN subreddits ON subreddits.id = posts.subredditId
-            ORDER BY posts.createdAt DESC
-            LIMIT 25`
+                JOIN votes ON votes.postId = posts.id
+                GROUP BY posts.id
+                ORDER BY voteScore DESC
+                LIMIT 25`
         )
         //map function to take each falt row from results array and unflatten it
         .then(result => result.map(function(row)  
@@ -121,6 +158,8 @@ class RedditAPI {
             rowData.subredditData.description = row.description;
             rowData.subredditData.subCreationDate = row.subCreationDate;
             rowData.subredditData.subUpdateDate = row.subUpdateDate;
+            rowData.postVotes = {};
+            rowData.postVotes.voteScore = row.voteScore;
             return rowData;
             
             // can also do something like this, but getting error here

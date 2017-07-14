@@ -28,7 +28,7 @@ var myReddit = new RedditAPI(connection); //A new object of the reddit class in 
 
 // We call this function to create a new user to test our API
 // The function will return the newly created user's ID in the callback
-myReddit.createUser({
+/*myReddit.createUser({
     username: 'ME_IRL_123',
     password: 'abc123abc'
 })
@@ -50,7 +50,24 @@ myReddit.createUser({
     })
     .catch(error => {
         console.log(error.stack);
+    });*/
+
+
+myReddit.createVote({
+    userId: 4,
+    postId: 2,
+    voteDirection: -1
+})
+    .then(newVoteId => { 
+        //Reminder: newVoteId === value of insertId, in this case a 0
+        //As there is not INT AUTO INCREMENT PRM KEY in votes table 
+        console.log('The vote was added=' + newVoteId);
+    })
+    .catch(error => {
+        console.log("error");
+        console.log(error.stack);
     });
+
 
 myReddit.getAllPosts()
     .then(result => 
@@ -58,4 +75,3 @@ myReddit.getAllPosts()
        console.log(result);
        //console.log(result[0].id); 
     });
-    
