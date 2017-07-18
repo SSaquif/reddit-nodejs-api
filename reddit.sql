@@ -46,3 +46,15 @@ CREATE TABLE votes (
   FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
   FOREIGN KEY (postId) REFERENCES posts (id) ON DELETE CASCADE
 );
+
+-- A spinoff table as it is a foreign key of itself 
+CREATE TABLE comments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  userId INT,
+  postId INT,
+  parentId INT,
+  text VARCHAR(10000),
+  FOREIGN KEY (userId) REFERENCES users (id) ON DELETE SET NULL,
+  FOREIGN KEY (postId) REFERENCES posts (id) ON DELETE SET NULL,
+  FOREIGN KEY (parentId) REFERENCES comments (id)
+);

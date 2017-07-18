@@ -1,6 +1,5 @@
 "use strict";
 
-
 var bcrypt = require('bcrypt-as-promised');
 var HASH_ROUNDS = 10;
 
@@ -42,7 +41,7 @@ class RedditAPI {
                 return this.conn.query('INSERT INTO users (username,password, createdAt, updatedAt) VALUES (?, ?, NOW(), NOW())', [user.username, hashedPassword]);
             })
             .then(result => {
-                //console.log(result); //test to see what results returns
+                console.log(result); //test to see what results returns
                 return result.insertId;
                 //NTS: see documentation on github for result and insertid
             })
@@ -128,16 +127,20 @@ class RedditAPI {
         return this.conn.query(
         `   SELECT posts.id, posts.title, posts.url, posts.userId, posts.createdAt, posts.updatedAt, 
                     users.id AS userId, users.userName, users.createdAt AS userJoinDate, users.updatedAt AS userUpdateDate,
-                    subreddits.id AS subId, subreddits.name, subreddits.description, subreddits.createdAt AS subCreationDate, subreddits.updatedAt AS subUpdateDate,
-                    SUM(votes.voteDirection) AS voteScore
+                    subreddits.id AS subId, subreddits.name, subreddits.description, subreddits.createdAt AS subCreationDate, subreddits.updatedAt AS subUpdateDate
+                    
             FROM users 
                 JOIN posts ON users.id = posts.userId
                 JOIN subreddits ON subreddits.id = posts.subredditId
-                JOIN votes ON votes.postId = posts.id
                 GROUP BY posts.id
-                ORDER BY voteScore DESC
                 LIMIT 25`
         )
+        //put them back later, needed to take em out for the express workshop
+        //SUM(votes.voteDirection) AS voteScore, end of select
+        //JOIN votes ON votes.postId = posts.id, last join //apparently use left join, review old notes
+        //ORDER BY voteScore DESC,
+        
+        
         //map function to take each falt row from results array and unflatten it
         .then(result => result.map(function(row)  
         {   //NTS: Verbose code for self help for later, can make it without declaring rowdata
